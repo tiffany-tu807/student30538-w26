@@ -18,7 +18,7 @@ alt.Chart(movies_url).mark_bar().transform_filter(
 ).encode(
     alt.X('Gross:Q', title = "Worldwide Gross ($)"),
     alt.Y('Director:N', sort=alt.EncodingSortField(
-        op='max', field='Gross', order='descending'
+        field='Gross', order='descending'
     ), title = "Director")
 )
 ```

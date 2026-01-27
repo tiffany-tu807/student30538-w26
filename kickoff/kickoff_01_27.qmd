@@ -1,0 +1,84 @@
+---
+title: "Kickoff - lecture 7"
+author: "Peter Ganong and Maggie Shi"
+date-format: January 27, 2026
+format: 
+    revealjs:
+        slide-number: true
+        show-slide-number: all
+        self-contained: true
+---
+
+## Curve
+* The grade cutoffs in syllabus are a floor
+* If needed, we will curve so that this year has same letter grade distribution as last year
+
+```{python}
+import pandas as pd
+import altair as alt
+file_path = 'data/2024-12-16letter_grades.csv'
+grades_df = pd.read_csv(file_path)
+
+# Remove null values for letter_grade
+grades_df = grades_df.dropna(subset=['letter_grade'])
+
+# Collapse the dataset to calculate the share of each letter grade
+grade_shares = grades_df['letter_grade'].value_counts(normalize=True).reset_index()
+grade_shares.columns = ['letter_grade', 'Share']
+
+# Create an Altair bar chart for the histogram of letter grade share distribution
+chart = alt.Chart(grade_shares).mark_bar().encode(
+    x=alt.X('letter_grade:N', title='Letter Grade', sort='-y'),
+    y=alt.Y('Share:Q', title='Share')
+).properties(
+    title='Distribution of Letter Grade Shares (Fall 2024)',
+    width=300,
+    height=300
+)
+# Display the chart
+chart.show()
+```
+
+
+## Lab assessment feedback
+* Problem: Students (and TAs) are reporting that feedback format in Canvas is sub-optimal. 
+    * Solution: We are working on alternatives like incorporating Gradescope to improve the quality of feedback
+* Problem: Canvas is laggy 
+    * Solution: close all apps before starting the lockdown browser
+
+## PS2 impressions
+* Mostly excellent
+* Copy-pasting ChatGPT output is low value
+    * Real world: your manager also has ChatGPT. She doesn't need your help to query it.
+    * 30538: you won't have ChatGPT on exams
+
+## PS2 tips
+- Graphing if you wrote code to display graph but it didn't render in PDF, that is considered "complete"
+    * We've collected and updated possible solutions [here](https://github.com/uchicago-harris-dap/student30538-w26/wiki/Solution---Wrapping-Code-Output-and-Knitting-to-PDF)
+    * Shoutout: Jianghan Yuan for [clever solution](https://edstem.org/us/courses/89578/discussion/7562096) 
+    * If the solutions don't work for you, please come to OH or post on [Ed thread](https://edstem.org/us/courses/89578/discussion/7516928)
+* Don't push `parking_tickets_one_percent.csv`. Instead, update your `.gitignore` in pset submission
+
+## PS2 grading
+* Only 50\% or 100\%
+* Method
+    * AI takes a first pass, tells us if incomplete, which questions look incomplete. 
+    * Human takes a second pass at psets flagged by AI as incomplete
+* Can always request a regrade if you think we got it wrong
+
+## Midcourse survey  
+* Harris survey - sent out last week, due tonight
+* Our own survey - released today on canvas, *complete in lab*, closes tonight
+* Both anonymous!
+* Kids and I will bake something for the section with the highest participation!
+
+## Feedback already received
+* Where we are in the course (review [syllabus](https://docs.google.com/document/d/1NCOS61C5babMWy0JaMvSn89iKRVBYATyD_UoKRz3ljk/edit?tab=t.0))
+* Grading has been slow, working hard to speed it up behind the scenes
+* Upload/printing process (normal week)
+    * Monday/Wednesday before class: push PDF and print
+    * After: fix typos or things that are unclear
+
+## Logistics and misc
+* I will be running a conference this Thursday. Professor Shi will teach that lecture.
+* There were a few MUD cards about Altair's transform syntax that I haven't had the chance to write slides on yet.  Tracking this.

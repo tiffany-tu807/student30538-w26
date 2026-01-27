@@ -11,8 +11,8 @@ format:
     code-overflow: wrap
 ---
 
-
-```{python}
+```{python fig-align="center"}
+#| echo: false
 import altair as alt
 from vega_datasets import data
 import plotnine
@@ -22,23 +22,84 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
+import tempfile 
+from IPython.display import SVG, display
+import vl_convert as vlc
 url = ("https://raw.githubusercontent.com/mcnakhaee/palmerpenguins/master/palmerpenguins/data/penguins.csv")
 penguins = pd.read_csv(url)
 alt.data_transformers.enable('default', max_rows=None);
 
+## helper functions  for displaying altair
+def display_altair_svg(chart):
+    """
+    Render an Altair chart to SVG and display it inline.
+    """
+    svg_text = vlc.vegalite_to_svg(chart.to_dict())
+
+    with tempfile.NamedTemporaryFile(suffix=".svg", mode="w") as tmp:
+        tmp.write(svg_text)
+        tmp.flush()
+        display(SVG(filename=tmp.name))
+
+def display_altair_png(chart, scale=2):
+    """
+    Render an Altair chart to a PNG and display it inline.
+
+    Parameters
+    ----------
+    chart : altair.Chart
+        Altair chart object to render.
+    scale : int, optional
+        Resolution scaling factor for the PNG (default = 2). Use scale=2 for standard slides. Use scale = 3–4 for dense figures or PDF exports.
+    """
+    png_bytes = vlc.vegalite_to_png(chart.to_dict(), scale=scale)
+
+    # Write to a temporary PNG file and display
+    with tempfile.NamedTemporaryFile(suffix=".png") as tmp:
+        tmp.write(png_bytes)
+        tmp.flush()
+        display(Image(filename=tmp.name))
+
+## define axis font sizes in altair
+def axis_theme():
+    return {
+        "config": {
+            "axis": {
+                "labelFontSize": 18,
+                "titleFontSize": 20
+            }
+        }
+    }
+
+
+_ = alt.themes.register("axis_theme", axis_theme) #assign to dummy variable _ so it doesn't make a print statement
+_ = alt.themes.enable("axis_theme")
 ```
 
 
 
 # Introduction
-## Roadmap of lecture 
+
+## Skills hopefully acquired at the end of lecture
+
+Take a single variable in a dataset. 
+
+Visualize to learn more about it. Key cases of interest:
+* Categorical variables (in lecture 2 we called these `N`/`O`)
+* Continuous variables (in lecture 2 we called these `Q`)
+    * Exploring typical values
+    * Exploring and dealing with unusual values
+
+(Up next class: covariation with two variables)
+
+## Roadmap of lecture {style="font-size: 0.9em"}
 * Introduce three key ideas in data visualization
     * exploration vs. production
     * headline vs. sub-messages 
     * iteration
 * introduce datasets for this lecture
-* Categorical variables
-* Continuous variables
+* Categorical variables (in lecture 2 we called these `N`/`O`)
+* Continuous variables (in lecture 2 we called these `Q`)
     * Exploring typical values
     * Exploring and dealing with unusual values
 
@@ -105,7 +166,7 @@ What does he mean?
 
 * Most of our visualization lectures are based on the [University of Washington](https://idl.uw.edu/visualization-curriculum/) textbook, but the textbook doesn't have enough material on exploratory data analysis. So we are supplementing with
     * [Data Visualization](https://r4ds.hadley.nz/data-visualize)
-    * [Exploratory Data Analysis](https://r4ds.hadley.nz/eda) material in the **R for Data Science** textbook (with the code translated to Altair)
+    * [Exploratory Data Analysis](https://r4ds.hadley.nz/EDA.html) material in the **R for Data Science** textbook (with the code translated to Altair)
 
 * `diamonds`, `mpg` are from "Exploratory Data Analysis"
 * `movies` (also used last lecture) is from the UW textbook 
@@ -121,26 +182,20 @@ What does he mean?
 
 ## introduce dataset `diamonds` {style="font-size: 0.9em"}
 <div style="font-size: 90%">
-```{.python}
+
+```{python}
+#| echo: true 
 import pandas as pd
 from plotnine.data import diamonds
-diamonds.head()
+diamonds.shape
 ```
 
 ```{python}
+#| echo: true 
 diamonds.head()
 ```
 
 </div>
-
-## introduce dataset `diamonds`
-```{.python}
-diamonds.shape
-```
-
-```{python}
-diamonds.shape
-```
 
 
 
@@ -163,6 +218,8 @@ Variable | Definition | Values |
 
 </div>
 
+
+
 ##  Summarizing `cut` in a table
 ```{.python}
 diamonds_cut = diamonds.groupby('cut').size()
@@ -175,24 +232,37 @@ diamonds_cut = diamonds.groupby('cut').size()
 diamonds_cut
 ```
 
-## Summarizing with a bar graph
-```{.python code-line-numbers="1|"} 
-diamonds_cut = diamonds_cut.reset_index().rename(columns={0:'N'}) 
+## Summarizing with a bar graph (code)
+```{.python code-line-numbers="1-2|4-5,8|"} 
+#moves the index (`cut`) into a normal column so Altair can read it.
+diamonds_cut = diamonds_cut.reset_index().rename(columns={0:'N diamonds'})
+
+# extract ordering of `cut` as a Python list to use for sorting
+cut_order = diamonds['cut'].cat.categories.tolist()
 
 alt.Chart(diamonds_cut).mark_bar().encode(
-    alt.X('cut:O', title = "Cut"),
-    alt.Y('N:Q', title = "Count")
+    alt.X('cut:O', title = "Cut", sort=cut_order),
+    alt.Y('N diamonds:Q', title = "Count")
+).properties(width=640, height=360).configure_axis(
+    labelFontSize=18,
+    titleFontSize=20
 )
 ```
 
-```{python}
-diamonds_cut = diamonds_cut.reset_index().rename(columns={0:'N'})
+**Note**: we have included syntax to modify graph properties here. Going forward our `.qmd` source code uses these throughout, but we will omit in the slides for the sake of space.
 
+## Summarizing with a bar graph (plot)
+```{python fig-align="center"}
+#moves the index (`cut`) into a normal column so Altair can read it.
+diamonds_cut = diamonds_cut.reset_index().rename(columns={0:'N diamonds'})
+cut_order = diamonds['cut'].cat.categories.tolist()
 
-alt.Chart(diamonds_cut).mark_bar().encode(
-    alt.X('cut:O', title = "Cut"),
-    alt.Y('N:Q', title = "Count")
-)
+chart = alt.Chart(diamonds_cut).mark_bar().encode(
+    alt.X('cut:O', title = "Cut", sort=cut_order),
+    alt.Y('N diamonds:Q', title = "Count")
+).properties(width=900, height=450)
+
+display_altair_svg(chart)
 ```
 
 
@@ -216,7 +286,7 @@ Remark: The skills are absolutely fundamental and so we will intentionally be a 
 
 ## Recall: `movies` dataset
 
-<div style="font-size: 70%">
+<div style="font-size: 50%">
 ```{.python}
 movies_url = 'https://cdn.jsdelivr.net/npm/vega-datasets@1/data/movies.json'
 movies = pd.read_json(movies_url)
@@ -246,14 +316,17 @@ hist_rt
 ```
 
 ```{python}
+#| fig-align: center
 hist_rt = alt.Chart(movies_url).mark_bar().encode(
     alt.X('Rotten_Tomatoes_Rating:Q', bin=alt.BinParams(maxbins=20), title = "Rotten Tomatoes Rating (%)"),
     alt.Y('count():Q', title = "Count")
 ).properties(
-    width=640,
+    width=800,
     height=360
 )
-hist_rt
+# have to do configure_axis here instead of when defining hist_rt so that we can do the horizontal concatenation later (hist_rt | hist_imdb)
+
+display_altair_svg(hist_rt)
 ```
 
 Discussion question: what are the headline and sub-messages?
@@ -279,11 +352,16 @@ hist_imdb
 ```
 
 ```{python}
+#| fig-align: center
 hist_imdb = alt.Chart(movies_url).mark_bar().encode(
     alt.X('IMDB_Rating:Q', bin=alt.BinParams(maxbins=20), title = "IMDB Ratings"),
     alt.Y('count():Q', title = "Count")
+).properties(
+    width=800,
+    height=360
 )
-hist_imdb
+
+display_altair_svg(hist_imdb)
 ```
 
 ## Side-by-side {style="font-size: 0.8em"}
@@ -293,10 +371,11 @@ hist_rt | hist_imdb
 
 ```{python}
 #| fig-align: center
-hist_rt | hist_imdb
+side_by_side = hist_rt | hist_imdb
+display_altair_svg(side_by_side)
 ```
 
-Discussion question: compare the two ratings distributions. If _your goal for the headline of the graph to be about differentiating between good and bad movies_, which is more informative?
+Discussion question: compare the two ratings distributions. If _your goal for the headline of the graph is about differentiating between good and bad movies_, which rating is more informative?
 
 ::: {.notes }
 **NOTES:**
@@ -333,17 +412,21 @@ alt.Chart(penguins).mark_bar().encode(
 
 ```{python}
 #| fig-align: center
-alt.Chart(penguins).mark_bar().encode(
+chart = alt.Chart(penguins).mark_bar().encode(
     alt.X('body_mass_g:Q', bin=alt.BinParams(step=200), title = "Body Mass (g)"),
     alt.Y('count():Q', title = "Count")
 ).properties(
-    width=400, 
-    height=400 )
+    width=800, 
+    height=400
+)
+
+
+display_altair_svg(chart)
 ```
 
 ## Histogram `step` parameter
 
-`step=20` vs. `step=200` vs. `step=2000`
+`step=20` vs. `step=200` vs, `step=2000` 
 
 ```{python}
 #| echo: false
@@ -351,21 +434,37 @@ alt.Chart(penguins).mark_bar().encode(
 
 plot1 = alt.Chart(penguins).mark_bar().encode(
     alt.X('body_mass_g', bin=alt.BinParams(step=20), title = "Body Mass (g)"),
-    alt.Y('count()', title = "Count"))
+    alt.Y('count()', title = "Count")).properties(
+    width=400, 
+    height=400
+)
 
 plot2 = alt.Chart(penguins).mark_bar().encode(
     alt.X('body_mass_g', bin=alt.BinParams(step=200), title = "Body Mass (g)"),
-    alt.Y('count()', title = "Count"))
+    alt.Y('count()', title = "Count")).properties(
+    width=400, 
+    height=400
+)
 
 plot3 = alt.Chart(penguins).mark_bar().encode(
     alt.X('body_mass_g', bin=alt.BinParams(step=2000), title = "Body Mass (g)"),
-    alt.Y('count()', title = "Count"))
+    alt.Y('count()', title = "Count")).properties(
+    width=400, 
+    height=400
+)
 
-plot1 | plot2 | plot3
+combined = (plot1 | plot2 | plot3).configure_axis(
+    labelFontSize=18,
+    titleFontSize=20
+)
+
+
+display_altair_svg(combined)
+
 ```
 
 
-Discussion question: what message(s) come from each `binwidth` choice? Which do you prefer?
+Discussion question: what headline message(s) come from each `step` choice? Which do you prefer?
 
 
 ::: {.notes }
@@ -382,33 +481,38 @@ An alternative to a histogram for exploring frequency in continuous variable: de
 ```{.python code-line-numbers="1-3|"}
 alt.Chart(penguins).transform_density(
     'body_mass_g',
-    as_=['body_mass_g', 'density']
+    as_=['body_mass_g2', 'density']
 ).mark_area().encode(
-    alt.X('body_mass_g:Q', title = "Body Mass (g)"),
+    alt.X('body_mass_g2:Q', title = "Body Mass (g)"),
     alt.Y('density:Q', title = "Density")
 )
 ```
 
 ```{python}
 #| fig-align: center
-alt.Chart(penguins).transform_density(
+chart = alt.Chart(penguins).transform_density(
     'body_mass_g',
-    as_=['body_mass_g', 'density']
+    as_=['body_mass_g2', 'density']
 ).mark_area().encode(
-    alt.X('body_mass_g:Q', title = "Body Mass (g)"),
+    alt.X('body_mass_g2:Q', title = "Body Mass (g)"),
     alt.Y('density:Q', title = "Density")
+).properties(
+    width=1000, 
+    height=400
 )
+
+display_altair_svg(chart)
 ```
 ::: {.notes }
 **NOTES:**
 Explaining the syntax:
 transform_density('body_mass_g', ...) tells altair to compute a kernel density estimate
-as_=['body_mass_g', 'density'] names the output of the density transform -- first item (body_mass_g) is name of x-values and second is the name for the y-values (density)
+as_=['body_mass_g2', 'density'] names the output of the density transform -- first item (body_mass_g2) is name of x-values and second is the name for the y-values (density)
 :::
     
-## Back to diamonds, focus on `carat`
+## Back to diamonds, focus on `carat` {style="font-size: 0.8em"}
 ```{.python code-line-numbers="1|"}
-alt.data_transformers.disable_max_rows() 
+alt.data_transformers.disable_max_rows()  #disable 5k max rows
 
 alt.Chart(diamonds).mark_bar().encode(
     alt.X('carat', bin=alt.Bin(maxbins=10), title = "Carat"),
@@ -435,12 +539,15 @@ chart = alt.Chart(binned).mark_rect(stroke='white', strokeWidth=1).encode(
     x=alt.X('carat_bin_left:Q', title='Carat', axis=alt.Axis(format=".1f")),
     x2='carat_bin_right:Q',
     y=alt.Y('count:Q', title='Count')
+).properties(
+    width=800, 
+    height=400
 )
 
-chart
+display_altair_svg(chart)
 ```
 
-First line disables `altair`'s maximum row limit (5,000)
+First plot iteration reveals most of sample is < 2
 
 
 
@@ -463,7 +570,7 @@ So the first code chunk is shown to illustrate what you might *want* to do in a 
     
 
 
-## Histogram of `carat`
+## Histogram of `carat` {style="font-size: 0.8em"}
 
 ```{.python code-line-numbers="1|"}
 diamonds_small = diamonds.loc[diamonds['carat'] < 2.1]
@@ -507,10 +614,15 @@ chart = alt.Chart(binned).mark_rect(stroke='white', strokeWidth=0.5).encode(
     ),
     x2='carat_bin_right:Q',
     y=alt.Y('count:Q', title='Count')
+).properties(
+    width=800, 
+    height=400
 )
 
-chart
+display_altair_svg(chart)
 ```
+
+Second plot iteration reveals count is not _entirely_ decreasing in carat
 
 ## In-class exercise: histogram of `carat` {background-color="aliceblue" style="font-size: 0.8em"}
 
@@ -553,7 +665,7 @@ chart = alt.Chart(binned).mark_rect(stroke='white', strokeWidth=0.5).encode(
     x2='carat_bin_right:Q',
     y=alt.Y('count:Q', title='Count')
 ).properties(
-    width=300, 
+    width=1000, 
     height=300 )
 
 chart
@@ -562,7 +674,7 @@ chart
 
 Discussion questions 
 
-1. What is the headline of this plot? Submessages?
+1. What is the headline of the 3rd plot iteration? Submessages?
 2. What questions does it raise?
 
 ::: {.notes }
@@ -571,7 +683,6 @@ Discussion questions
 1. Headline: carats size does not seem to be evenly distributed, but instead follows discrete increments.
 2. Are diamonds being cut down to exact sizes? Are diamond weights being fraudulently inflated? Why are some diamonds cut and not others?*
 
-*ask class how many have been to the Art Institute and see this painting*
 :::
 
 ## Typical continuous variables: summary 
@@ -594,27 +705,34 @@ diamonds['y'].describe()
 ```
 
 ```{python}
+diamonds = diamonds.drop(columns=["carat_bin_left", "carat_bin_right", "carat_bin"])
 diamonds['y'].describe()
 ```
 
 ## `diamonds`: examine unusual `y` values
 
-```{.python}
-diamonds.loc[(diamonds['y'] < 3) | (diamonds['y'] > 20)] 
-```
-<div style="font-size: 50%">
+
+<div style="font-size: 70%">
 ```{python}
-diamonds.loc[(diamonds['y'] < 3) | (diamonds['y'] > 20)] 
+#| echo: true
+diamonds.loc[(diamonds['y'] < 3) ] 
 ```
 </div>
 
-## `diamonds`: compare to 10 random diamonds
-```{.python}
-diamonds.sample(n=10)
+## `diamonds`: examine unusual `y` values
+
+<div style="font-size: 70%">
+```{python}
+#| echo: true
+diamonds.loc[(diamonds['y'] > 20)] 
 ```
+</div>
+
+## `diamonds`: compare to 10 random obs
 
 <div style="font-size: 50%">
 ```{python}
+#| echo: true
 diamonds.sample(n=10)
 ```
 </div>
@@ -642,16 +760,15 @@ diamonds_clean
 </div>
 
 ## Option 2: recode to missing
-```{.python}
-diamonds_missing = diamonds.copy()
-diamonds_missing['y'] = np.where((diamonds_missing['y'] < 3) | (diamonds_missing['y'] > 20), np.nan, diamonds_missing['y'])
-diamonds_missing[diamonds_missing['y'].isna()]
-```
+
 
 <div style="font-size: 50%">
 ```{python}
+#| echo: true
 diamonds_missing = diamonds.copy()
-diamonds_missing['y'] = np.where((diamonds_missing['y'] < 3) | (diamonds_missing['y'] > 20), np.nan, diamonds_missing['y'])
+diamonds_missing['y'] = np.where((diamonds_missing['y'] < 3) |
+     (diamonds_missing['y'] > 20), 
+     np.nan, diamonds_missing['y'])
 diamonds_missing[diamonds_missing['y'].isna()]
 ```
 </div>
@@ -688,7 +805,8 @@ print(f"99th Percentile: {pctile99}")
 ## Option 3: winsorize
 ```{.python}
 diamonds_winsor['y_winsor'] = np.where(diamonds_winsor['y'] < pctile01, pctile01, 
-                                np.where(diamonds_winsor['y'] > pctile99, pctile99, diamonds_winsor['y']))
+                                np.where(diamonds_winsor['y'] > pctile99, pctile99, 
+                                diamonds_winsor['y']))
 diamonds_winsor
 ```
 
@@ -763,15 +881,16 @@ Source: Table A-2 from [Earnings Instability](https://bpb-us-w2.wpmucdn.com/voic
 
 ## Pros + cons of each option {style="font-size: 0.8em"}
 
-* **Winsorizing** 
-    * Manipulates the data values 
-    * Allows you to use that observation + that variable in your analysis
-* **Recoding to missing**
-    * Manipulates the data values 
-    * Allows you to use that observation -- just not _that variable_ -- in your analysis
+
 * **Dropping the observation** 
     * Does not manipulate the data values
     * But can't use that observation _at all_ in your analysis 
+* **Recoding to missing**
+    * Manipulates the data values 
+    * Allows you to use that observation -- just not _that variable_ -- in your analysis
+* **Winsorizing** 
+    * Manipulates the data values 
+    * Allows you to use that observation + that variable in your analysis
 
 
 ## `diamonds`: what would you do?
@@ -847,12 +966,14 @@ base = alt.Chart(mpg).mark_point().encode(
 ).properties(
     width=600, 
     height=400 )
-base 
+display_altair_svg(base)
 ```
 
 ## Q2: Why do some cars have better than typical mileage?
 ```{.python .code-overflow-wrap}
-potential_outliers = mpg.loc[(mpg["hwy"] > 40) | ((mpg["hwy"] > 20) & (mpg["displ"] > 5))]
+potential_outliers = mpg.loc[(mpg["hwy"] > 40) 
+    | ((mpg["hwy"] > 20) 
+    & (mpg["displ"] > 5))]
 ```
 
 ```{python}
@@ -869,7 +990,8 @@ outliers = alt.Chart(potential_outliers).mark_point(
         alt.X('displ:Q', title = "Engine size (displ)"),
         alt.Y('hwy:Q', title = "Gas mileage (hwy)")
         )
-base + outliers
+combined = base + outliers
+display_altair_svg(combined)
 ```
 
 
@@ -893,9 +1015,9 @@ Fields
 1. `model`
 2. `class`
 
-How did I know to use these? Context knowledge about different types of cars. 
+**How did I know to use these?** Context knowledge about different types of cars. 
 
-Don't have context knowledge about your dataset? Use LLM/Google/human subject matter expert to help you identify patterns
+**Don't have context knowledge about your dataset?** Use LLM/Google/human subject matter expert to help you identify patterns
 
 
 ## Q2: Why do some cars have better than typical mileage?
@@ -915,7 +1037,7 @@ labels = alt.Chart(potential_outliers).mark_text(
     height=400)
 
 plot = base + outliers + labels
-plot
+display_altair_svg(plot)
 ```
 
 
@@ -945,8 +1067,8 @@ base = alt.Chart(mpg).mark_point(size=50, shape='diamond', filled=True, opacity=
 ).properties(
     width=600, 
     height=400)
-
-base + outliers
+plot = base+outliers
+display_altair_svg(plot)
 ```
 
 ## Discussion {style="font-size: 0.8em"}
