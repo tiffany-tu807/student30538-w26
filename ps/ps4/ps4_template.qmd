@@ -28,7 +28,7 @@ output:
 ### Github Classroom Assignment Setup and Submission Instructions
 
 1.  **Accepting and Setting up the PS4 Assignment Repository**
-    -   Each student must individually accept the repository for the problem set from Github Classroom ("ps4") -- <https://classroom.github.com/a/SN587tiQ>
+    -   Each student must individually accept the repository for the problem set from Github Classroom ("ps4") -- <https://classroom.github.com/a/hWhtcHqH>
         -   You will be prompted to select your cnetid from the list in order to link your Github account to your cnetid.
         -   If you can't find your cnetid in the link above, click "continue to next step" and accept the assignment, then add your name, cnetid, and Github account to this Google Sheet and we will manually link it: <https://rb.gy/9u7fb6>
     -   If you authenticated and linked your Github account to your device, you should be able to clone your PS4 assignment repository locally.
