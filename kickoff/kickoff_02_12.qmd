@@ -1,0 +1,35 @@
+---
+title: "Kickoff - lecture 12"
+author: "Peter Ganong and Maggie Shi"
+date-format: February 11, 2026
+format: 
+    revealjs:
+        slide-number: true
+        show-slide-number: all
+        self-contained: true
+---
+
+## Legality of scraping
+- Scraping is legally protected for the same reason that you can film or record audio or take photos in a public space. 
+- For anything on the (non-gated) public internet, there is no presumption of privacy. 
+- Yes, it is formally against [[LinkedIn]] (and many other sites') Terms of Service -- but those provisions are largely unenforceable. We could send a cease and desist letter if we wanted to dedicate legal time to it, but we would have probably lost in court if challenged. 
+- Would tell academics that the terms of service at [[LinkedIn]] don't allow scraping, but that they won't be enforced
+
+
+## Debrief from this week's assessment
+* Q1: most commonly missed edge case was the empty `<li>` at the end
+* Q2: common issues in pseudocode
+    * Many used `find_all` on `<a>` directly instead of iterating through `<li>` first. Need to iterate through `<li>` to grab the country names
+    * Skipping setup steps: initialize empty list/df and read in HTML with `requests`
+* Fewer students did well than usual (many also did well, but mean scores are much lower than every week except the first quiz). If you did poorly, that is a sign that you will want to prep more for next week's quiz and the final exam
+
+## Lockdown browser on assessments
+- We will be requiring lockdown browser for next lab assessment and final
+- Quiz will still be administered in Gradescope + Codespace, and accessed through Canvas
+- Protocol largely the same as before with lockdown browser, but you will need to log in to Gradescope too
+- TAs will upload a practice quiz so you know what to expect
+
+
+## Final project tips
+- We added a list of tips for the final project in the student repo [(here)](https://github.com/uchicago-harris-dap/student30538-w26/blob/main/final_project/final_project_tips.pdf)
+- Provides more detail on what we will be looking for when evaluating your project and presentation

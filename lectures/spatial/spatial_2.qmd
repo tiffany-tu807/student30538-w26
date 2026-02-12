@@ -1,0 +1,760 @@
+---
+title: "Advanced Spatial Methods II"
+author: "Peter Ganong and Maggie Shi"
+date: February 11, 2026
+date-format: long
+format: 
+  revealjs:
+    slide-number: true
+    show-slide-number: all
+    self-contained: true
+---
+
+
+
+## Skills acquired by the end of this lecture 
+* Understand how to incorporate spatial methods to make production-quality maps
+* Understand how to use spatial methods to create "tools" for spatial calculations
+
+# Use Case 3: production-quality maps
+
+## Roadmap: production-quality maps
+* Spatial methods use case 3: **production-quality maps**
+*  `matplotlib` to layer maps
+* `.boundary`
+* `.centroid`
+* Iterating through observations: using `.iterrows()`
+* Layering different geodata together: `zorder`
+
+## Use Case 3: production-quality maps
+
+Basic map of all ISOs:
+```{python}
+import geopandas as gpd
+import matplotlib.pyplot as plt
+from matplotlib import patheffects as pe # used later to format text
+import shapely
+import pandas as pd
+iso_gdf = gpd.read_file('data/derived-data/Independent_System_Operator.geojson')
+iso_gdf.plot().set_axis_off()
+```
+
+## Use Case 3: production-quality maps
+- Recall the "exploration" vs. "production" distinction from data visualization lectures 
+- This plot falls squarely under "exploration" -- would not be ready for a stakeholder-facing presentation, published report, etc. 
+
+
+## Use Case 3: production-quality maps
+We can use spatial methods to get something much nicer-looking. Here's the end result we're aiming for: 
+
+```{python}
+us_states_gdf = gpd.read_file('data/derived-data/lower_48_states.geojson')
+us_states_gdf.crs = iso_gdf.crs
+fig, ax = plt.subplots(figsize=(6, 6), dpi=1000)
+
+# plot the ISO polygons with alpha = 0.4 transparency
+iso_gdf.plot(ax = ax, facecolor = 'blue', alpha = 0.3).set_axis_off()
+# add boundaries
+iso_gdf.boundary.plot(ax=ax, color="navy", alpha = 0.5, linewidth=0.6)
+
+# add centroids 
+iso_gdf['centroid'] = iso_gdf.centroid
+iso_gdf.centroid.plot(ax=ax, marker="o",color="darkgreen", markersize=30,zorder=3)
+
+# format and place labels
+for _, row in iso_gdf.iterrows():
+    ax.text(x=row.centroid.x, y=row.centroid.y, ha="left", va="center",
+        s=row["NAME"], 
+        fontsize=5, zorder=3,
+        path_effects=[
+            pe.Stroke(linewidth=2, foreground="white"),  # white halo
+            pe.Normal(),]
+    )
+# plotting the non-ISO areas on top but transparent (utilizing alpha)
+us_states_gdf.plot(ax= ax, color= 'lightgray', edgecolor='none', zorder= 2, alpha= 0.3)
+plt.title("Independent Systems Operators in the Lower 48 States")
+plt.show()
+```
+
+<!-- 
+## Aside on plotting package
+- We are using `matplotlib` throughout spatial lectures
+-  `altair` has some spatial functionalities, but still rudimentary
+- Throughout next 2 lectures, we'll see examples where the clunkiness of _imperative_ plotting via `matplotlib` is particularly apparent 
+-->
+
+
+## Improving our map: boundaries 
+* `boundary` method returns gdf (or `GeoSeries`) with the boundary of every geometry in `iso_gdf`
+* Converts `MultiPolygon` into `MultiLineString`
+    * Reminder from DAP1 `Polygon` is a 2d filled object with an area, `LineString` is a 1d outline with a length
+* Plotting boundaries allows for better layering
+
+```{python}
+#| echo: true
+iso_boundaries = iso_gdf.boundary
+print("Boundary geometry type:", iso_boundaries.geom_type.value_counts())
+```
+
+## Improving our map: boundaries 
+```{.python  code-line-numbers="|1|2-3"}
+fig, ax = plt.subplots()
+iso_boundaries.plot(ax=ax, color="black", linewidth=0.6)
+iso_gdf.plot(ax=ax, facecolor = 'blue', alpha = 0.3).set_axis_off()
+```
+
+* Define `fig, ax` so we can plot layers on top of each other
+* Use `matplotlib` aesthetic options like `color`, `alpha = 0.3`, `linewidth = 0.6` to customize look
+
+## Visualizing at each step
+```{python}
+#| eval: false
+#| echo: true
+plt.show()
+```
+```{python}
+fig, ax = plt.subplots()
+iso_boundaries.plot(ax=ax, color="black", linewidth=0.6)
+iso_gdf.plot(ax=ax, facecolor = 'blue', alpha = 0.3).set_axis_off()
+
+plt.show()
+```
+
+**Discussion question**: now that we've modified the transparency and added boundaries, what observations can you now make about the ISOs?
+
+::: {.notes}
+the ISO regions are overlapping!  
+:::
+
+## Improving our map: add centroids
+- We want to add text labels and position them so they are on top of each ISO. 
+- Could hand code and pick these coordinates by hand, but this is cumbersome
+- Alternatively: use spatial methods to place them at the *centroid* of each ISO
+
+```{python}
+#| eval: false
+#| echo: true 
+# previous layers of plot... 
+# create centroids and plot in green
+iso_gdf.centroid.plot(ax=ax, marker="o", color="darkgreen", markersize=30, zorder=3)
+plt.show()
+```
+- `zorder = 3`: places centroids on *top* of other two layers
+
+## Visualizing at each step
+
+```{python}
+#| eval: true
+#| echo: false 
+fig, ax = plt.subplots(figsize=(6, 6), dpi=1000)
+
+iso_gdf.plot(ax = ax, facecolor = 'blue', alpha = 0.3).set_axis_off()
+iso_boundaries.plot(ax=ax, color="navy", alpha = 0.5, linewidth=0.6)
+iso_centroids = iso_gdf.centroid
+iso_centroids.plot(ax=ax, marker="o", color="darkgreen", markersize=30, zorder=3)
+plt.show()
+```
+
+
+## Improving our map: add labels
+```{.python code-line-numbers="|3"}
+# previous layers of plot... 
+# format and place labels
+for _, row in iso_gdf.iterrows():
+    ax.text(x=row.centroid.geometry.x, y=row.centroid.geometry.y, ha="left", va="center",
+        s=row["NAME"], 
+        fontsize=5, zorder=3,
+        path_effects=[
+            pe.Stroke(linewidth=2, foreground="white"),  # white halo
+            pe.Normal(),]
+    )
+```
+
+- `.iterrows()`: returns each row's index + data one-by-one
+    - _Note_: example of imperative plotting!
+- `for _, row`: ignores the index, just gets data
+
+
+## Improving our map: add labels
+```{.python code-line-numbers="4"}
+# previous layers of plot... 
+# format and place labels
+for _, row in iso_gdf.iterrows():
+    ax.text(x=row.centroid.geometry.x, y=row.centroid.geometry.y, ha="left", va="center",
+        s=row["NAME"], 
+        fontsize=5, zorder=3,
+        path_effects=[
+            pe.Stroke(linewidth=2, foreground="white"),  # white halo
+            pe.Normal(),]
+    )
+```
+
+- `row.centroid.geometry.x` and `row.centroid.geometry.y`: extract the x and y coords of centroid of that row
+- `ha, va`: horizontal and vertical alignment relative to `x,y`
+
+
+## Improving our map: add labels
+```{.python code-line-numbers="5-6|7-11|"}
+# define (fig, ax) as before -- see source code
+# format and place labels
+for _, row in iso_gdf.iterrows():
+    ax.text(x=row.centroid.x, y=row.centroid.y, ha="left", va="center",
+        s=row["NAME"], 
+        fontsize=5, zorder=3,
+        path_effects=[
+            pe.Stroke(linewidth=2, foreground="white"),  # white halo
+            pe.Normal(),]
+    )
+```
+
+- `s`: string to use for label
+- `zorder = 3`: places labels on top of two other layers
+- `path_effects`: adds white stroke on top of labels
+
+
+## Improving our map: add labels
+```{python}
+fig, ax = plt.subplots(figsize=(6, 6), dpi=1000)
+
+# plot the ISO polygons with alpha = 0.4 transparency
+iso_gdf.plot(ax = ax, facecolor = 'blue', alpha = 0.3).set_axis_off()
+# add boundaries
+iso_gdf.boundary.plot(ax=ax, color="navy", alpha = 0.5, linewidth=0.6)
+
+# add centroids 
+iso_centroids = iso_gdf.centroid
+iso_centroids.plot(ax=ax, marker="o",color="darkgreen", markersize=30,zorder=3)
+
+# format and place labels
+for _, row in iso_gdf.iterrows():
+    ax.text(x=row.centroid.x, y=row.centroid.y, ha="left", va="center",
+        s=row["NAME"], 
+        fontsize=5, zorder=3,
+        path_effects=[
+            pe.Stroke(linewidth=2, foreground="white"),  # white halo
+            pe.Normal(),]
+    )
+
+plt.show()
+```
+
+
+## Improving our map: add context
+- The ISO map only covers part of the U.S. -- but this may not be immediately apparent
+- To provide context, let's add the map of the remaining 48 states
+
+
+```{python}
+#| echo: true
+# importing our lower 48 states
+us_states_gdf = gpd.read_file('data/derived-data/lower_48_states.geojson')
+us_states_gdf.crs = iso_gdf.crs
+us_states_gdf.plot().set_axis_off()
+```
+
+
+## Improving our map: add context
+```{python}
+#| echo: true
+#| eval: false
+# define (fig, ax) as before -- see source code
+
+# plot remaining 48 states below ISO plot
+us_states_gdf.plot(ax= ax, color= 'lightgray', edgecolor='none', zorder= 2, alpha= 0.3)
+plt.title("Independent Systems Operators in the Lower 48 States")
+plt.show()
+```
+
+- `ax = ax`: add to same plot as previous layers
+- `zorder = 2`: ensures 48 states are plotted *below* ISOs
+- `color = 'lightgray'`: color as gray so as to not distract from main focus: ISOs
+
+## Improving our map: the final product
+
+```{python}
+fig, ax = plt.subplots(figsize=(6, 6), dpi=1000)
+
+# plot the ISO polygons with alpha = 0.4 transparency
+iso_gdf.plot(ax = ax, facecolor = 'blue', alpha = 0.3).set_axis_off()
+# add boundaries
+iso_gdf.boundary.plot(ax=ax, color="navy", alpha = 0.5, linewidth=0.6)
+
+# add centroids 
+iso_gdf.centroid.plot(ax=ax, marker="o",color="darkgreen", markersize=30,zorder=3)
+
+# format and place labels
+for _, row in iso_gdf.iterrows():
+    ax.text(x=row.centroid.x, y=row.centroid.y, ha="left", va="center",
+        s=row["NAME"], 
+        fontsize=5, zorder=3,
+        path_effects=[
+            pe.Stroke(linewidth=2, foreground="white"),  # white halo
+            pe.Normal(),]
+    )
+
+
+# plotting the non-ISO areas on top but transparent (utilizing alpha)
+us_states_gdf.plot(ax= ax, color= 'lightgray', edgecolor='none', zorder= 2, alpha= 0.3)
+plt.title("Independent Systems Operators in the Lower 48 States")
+plt.show()
+```
+
+## Do-pair-share {background-color="aliceblue"}
+Modify the map in `spatial2_dps.qmd` so that:
+
+- The Midwest ISO (MISO) is highlighted in `firebrick`
+- The only centroid + label is for MISO
+- But still keep the context of other ISOs and rest of U.S.
+
+```{python}
+miso_gdf = iso_gdf[iso_gdf["NAME"] == 
+    "Midcontinent Independent Transmission System Operator, Inc.."]
+```
+
+## Do-pair-share: end goal {background-color="aliceblue"}
+```{python}
+fig, ax = plt.subplots(figsize=(6, 6), dpi=1000)
+
+# plot the ISO polygons with alpha = 0.4 transparency
+iso_gdf.plot(ax = ax, facecolor = 'blue', alpha = 0.1).set_axis_off()
+
+# add boundaries
+iso_gdf.boundary.plot(ax=ax, color="navy", alpha = 0.5, linewidth=0.6)
+
+# subset to MISO
+miso_gdf = iso_gdf[iso_gdf["NAME"] == "Midcontinent Independent Transmission System Operator, Inc.."]
+
+# plot MISO centroid
+miso_gdf.centroid.plot(ax=ax, marker="o",color="darkgreen", markersize=30,zorder=4)
+
+# plot MISO on top 
+miso_gdf.plot(ax= ax, color= 'firebrick', edgecolor='none', zorder= 3, alpha= 0.8)
+
+# format and place labels
+for _, row in miso_gdf.iterrows():
+    ax.text(x=row.centroid.x, y=row.centroid.y, ha="left", va="center",
+        s=row["NAME"], 
+        fontsize=5, zorder=4,
+        path_effects=[
+            pe.Stroke(linewidth=2, foreground="white"),  # white halo
+            pe.Normal(),]
+    )
+
+# plotting the non-ISO areas on top but transparent (utilizing alpha)
+us_states_gdf.plot(ax= ax, color= 'lightgray', edgecolor='none', zorder= 2, alpha= 0.3)
+plt.title("MISO and Other ISOs in the Lower 48 States")
+plt.show()
+```
+
+
+## Use case 3: production quality maps -- summary {style="font-size: 0.7em"}
+- Maps can add useful context and help audience better visualize information
+- Can use spatial methods to create custom, production-quality maps
+    - `centroid` to place labels
+    - `boundary` to highlight features
+- `matplotlib` tools:
+    - `zorder` to specify order of layers
+    - `iterrows()` to add text labels one by one
+
+
+# Use Case 4: spatial calculations
+## Use case 4: spatial calculations -- roadmap
+- **Motivating question**: for the largest cities in the U.S., what is the total production capacity of nearby power plants? 
+- Load and inspect cities data
+- Working with CRS
+    - Harmonizing for plotting
+    - Looking up units
+- Using spatial methods to create "tools" to answer question: `buffer`
+
+
+## Load data 
+
+* Load in cities dataset from `.shp`
+* The original format of the spatial data doesn't matter -- `geopandas` loads it all in as GeoDataFrame
+
+```{python}
+#| echo: true
+us_cities_gdf = gpd.read_file('data/derived-data/cities_greater_500k.shp')
+
+print("Geometry type:", us_cities_gdf.geom_type.value_counts())
+print("CRS of us_cities_gdf:", us_cities_gdf.crs)
+```
+
+## Load data 
+
+```{python}
+#| echo: true
+print(us_cities_gdf.head())
+```
+
+## Visualize at each step 
+
+```{python}
+fig, ax = plt.subplots(figsize=(8, 6))
+us_cities_gdf.plot(ax=ax, markersize=1.5)
+ax.set_axis_off()
+plt.show()
+```
+
+## Load power plant dataset from last class
+
+```{python}
+#| echo: true
+
+# power plants
+us_powerplant_df = pd.read_csv('data/derived-data/us_gppd.csv')
+us_powerplant_gdf = gpd.GeoDataFrame(
+    geometry=gpd.points_from_xy(
+        us_powerplant_df.longitude, 
+        us_powerplant_df.latitude, 
+        crs="EPSG:4326"), 
+    data=us_powerplant_df)
+```
+
+## CRS comparison
+
+We want to layer the US cities, states, and power plant maps together. Let's take a look at their CRS's
+
+```{.python}
+print("CRS of us_cities_gdf:", us_cities_gdf.crs)
+print("CRS of us_states_gdf:", us_states_gdf.crs)
+print("CRS of us_powerplant_gdf:", us_powerplant_gdf.crs)
+```
+
+```{python}
+print("CRS of us_cities_gdf:", us_cities_gdf.crs)
+print("CRS of us_states_gdf:", us_states_gdf.crs)
+print("CRS of us_powerplant_gdf:", us_powerplant_gdf.crs)
+```
+
+- Note that the CRS of `us_cities_gdf` does *not* match `us_states_gdf` or `us_powerplant_gdf`!
+- Is this an issue? Let's plot and see...
+
+
+## Plotting *without* harmonizing CRS
+```{.python}
+fig, ax = plt.subplots(figsize=(8, 6))
+us_states_gdf.boundary.plot(ax=ax, color='lightgray', linewidth=1)
+us_cities_gdf.plot(ax=ax, markersize=1.5)
+ax.set_axis_off()
+plt.show()
+```
+
+```{python}
+fig, ax = plt.subplots(figsize=(8, 6))
+us_states_gdf.boundary.plot(ax=ax, color='lightgray', linewidth=1)
+us_cities_gdf.plot(ax=ax, markersize=1.5)
+ax.set_axis_off()
+plt.show()
+```
+
+- We don't get an error, but something's clearly off!
+- One of the *most common* spatial errors: incompatible CRS's
+
+## Plotting *after* harmonizing CRS
+
+```{.python code-line-numbers="1-2|"}
+us_cities_gdf = us_cities_gdf.to_crs(us_states_gdf.crs)
+print("CRS of (new) us_cities_gdf:", us_cities_gdf.crs)
+
+fig, ax = plt.subplots(figsize=(8, 6))
+us_states_gdf.boundary.plot(ax=ax, color='lightgray', linewidth=1)
+us_cities_gdf.plot(ax=ax, markersize=1.5)
+ax.set_axis_off()
+plt.show()
+```
+
+```{python}
+us_cities_gdf = us_cities_gdf.to_crs(us_states_gdf.crs)
+print("CRS of (new) us_cities_gdf:", us_cities_gdf.crs)
+
+fig, ax = plt.subplots(figsize=(8, 6))
+us_states_gdf.boundary.plot(ax=ax, color='lightgray', linewidth=1)
+us_cities_gdf.plot(ax=ax, markersize=1.5)
+ax.set_axis_off()
+plt.show()
+```
+
+
+## Plan to answer our question
+- Now that we've confirmed our gdf's are projected on same CRS, we can return to our goal
+- **Motivating question**: for the largest cities in the U.S., what is the total production capacity of nearby power plants? 
+- Plan
+    1. Find all power plants within a certain distance of each city
+    2. Sum up production capacity across power plants near each city
+    3. Plot
+
+## 1. Find all power plants within a certain distance
+
+Can we just use `sjoin` between `us_powerplant_gdf` and `us_cities` to find the nearby power plants?
+
+```{.python}
+powerplants_near_cities_gdf = gpd.sjoin(us_powerplant_gdf, 
+    us_cities_gdf, 
+    how='inner', predicate='intersects')
+print("Shape:", powerplants_near_cities_gdf.geometry.head())
+```
+
+```{python}
+powerplants_near_cities_gdf = gpd.sjoin(us_powerplant_gdf, 
+    us_cities_gdf, 
+    how='inner', predicate='intersects')
+print(powerplants_near_cities_gdf.geometry.head())
+```
+
+
+No -- we get an empty `GeoDataFrame`!
+
+## Issues with using `sjoin` here
+
+- `us_powerplant_gdf` and `us_cities_gdf` are both `Point` geometries -- generally won't overlap unless they have the exact same coordinates
+- Furthermore: no notion of how close we mean by "nearby"!
+- **Solution**: use spatial methods to create a "tool" to join on
+    - Turn `us_cities_gdf` into a `Polygon` geometry using `.buffer()`
+    - Then apply `sjoin` with `us_cities_gdf`
+
+
+## Constructing a 100km buffer 
+- Let's say we want to construct **100 kilometer buffer** around each city
+- First need to check what unit the CRS calculates distance in:
+
+```{python}
+#| echo: true
+print(us_cities_gdf.crs.axis_info)
+```
+
+`unit_name = degree` (as in longitude and latitude) -- *not* meters!
+
+## Constructing a 100km buffer 
+So we need to re-project `us_cities_gdf` to a CRS with unit meters. We'll use **EPSG 5070 (NAD 83)**
+
+
+![](pictures/epsg_5070_2.png){fig-width=10%, fig-align="center"}
+
+Source: [epsg.io/5070](https://epsg.io/5070)
+
+## Constructing a 100km buffer
+```{.python code-line-numbers="1|2|3|"}
+us_cities_100km_gdf = us_cities_gdf.to_crs(epsg=5070)
+us_cities_100km_gdf["geometry"] = us_cities_100km_gdf.buffer(100000)
+us_cities_100km_gdf = us_cities_100km_gdf.to_crs(epsg=4326)
+```
+
+1. Re-project `us_cities_gdf` into **EPSG 5070**
+    - At this point, `us_cities_100km_gdf` geometry type is still `Point`
+2. Replace `geometry` 100km buffer
+    - This modifies the geometry from `Point` to `Polygon`
+3. Re-project `us_cities_100km_gdf` back into **EPSG 4326** to be consistent with other layers
+
+```{python}
+
+us_cities_100km_gdf = us_cities_gdf.to_crs(epsg=5070)
+us_cities_100km_gdf["geometry"] = us_cities_100km_gdf.buffer(100000)
+us_cities_100km_gdf = us_cities_100km_gdf.to_crs(epsg=4326)
+```
+
+## Inspecting `us_cities_100km_gdf`
+```{.python}
+print(us_cities_100km_gdf.head())
+```
+
+```{python}
+print(us_cities_100km_gdf.head())
+```
+
+`us_cities_100km_gdf` has inherited the same attributes as `us_cities_gdf`, except now `geometry == POLYGON`
+
+## Plot to verify `buffer`
+```{.python code-line-numbers="3|"}
+fig, ax = plt.subplots(figsize=(8, 6))
+us_states_gdf.boundary.plot(ax=ax, color='lightgray', linewidth=0.5)
+us_cities_100km_gdf.plot(ax=ax, color='blue', alpha=0.3, zorder = 2)
+us_cities_gdf.plot(ax=ax, markersize=1.5, zorder = 3)
+ax.set_axis_off()
+plt.show()
+```
+
+```{python}
+fig, ax = plt.subplots(figsize=(8, 6))
+us_states_gdf.boundary.plot(ax=ax, color='lightgray', linewidth=0.5)
+us_cities_100km_gdf.plot(ax=ax, color='blue', alpha=0.3, zorder = 2)
+us_cities_gdf.plot(ax=ax, markersize=1.5, zorder = 3)
+ax.set_axis_off()
+plt.show()
+```
+
+
+
+## Using `sjoin` with 100km buffer
+```{.python}
+powerplants_within_100km_gdf = gpd.sjoin(us_powerplant_gdf, 
+    us_cities_100km_gdf, 
+    how='inner', predicate='intersects')
+print(powerplants_within_100km_gdf.geom_type.value_counts())
+```
+
+```{python}
+powerplants_within_100km_gdf = gpd.sjoin(us_powerplant_gdf, 
+    us_cities_100km_gdf, 
+    how='inner', predicate='intersects')
+print(powerplants_within_100km_gdf.geom_type.value_counts())
+```
+
+**Discussion questions**: 
+
+- What is the left geodataframe? 
+- What is the right? 
+- What will the geometry of resulting `powerplants_within_100km_gdf` be based on?
+
+::: {.notes}
+1. us_powerplant_gdf
+2. us_cities_100km_gdf
+3. us_powerplant_gdf: the left dataframe
+:::
+
+## Plot to verify the `sjoin`
+```{.python code-line-numbers="4|"}
+fig, ax = plt.subplots(figsize=(8, 6))
+us_states_gdf.boundary.plot(ax=ax, color='lightgray', linewidth=0.5)
+us_cities_100km_gdf.plot(ax=ax, color='blue', alpha=0.3, zorder = 2)
+powerplants_within_100km_gdf.plot(ax=ax, markersize=1.5, zorder = 3)
+ax.set_axis_off()
+plt.show()
+```
+
+```{python}
+fig, ax = plt.subplots(figsize=(8, 6))
+us_states_gdf.boundary.plot(ax=ax, color='lightgray', linewidth=0.5)
+us_cities_100km_gdf.plot(ax=ax, color='blue', alpha=0.3, zorder = 2)
+powerplants_within_100km_gdf.plot(ax=ax, markersize=0.5, zorder = 3)
+ax.set_axis_off()
+plt.show()
+```
+
+## Inspect the dataset
+```{.python}
+print(powerplants_within_100km_gdf.columns)
+```
+
+```{python}
+print(powerplants_within_100km_gdf.columns)
+```
+
+After the `sjoin`, we now have gwh from power plants *and* city names
+
+## 2. Sum up total generation by city
+```{.python  code-line-numbers="1-5|7-11"}
+generation_by_city = (powerplants_within_100km_gdf
+    .groupby('city_fips')['generation_gwh_2019']
+    .sum()
+    .reset_index(name='total_generation_gwh_100km')
+)
+
+us_cities_gdf = us_cities_gdf.merge(
+    generation_by_city,
+    on='city_fips',
+    how='left'
+)
+```
+
+```{python}
+# for each city, sum generation_gwh_2019 for nearby power plants
+generation_by_city = (powerplants_within_100km_gdf
+    .groupby('city_fips')['generation_gwh_2019']
+    .sum()
+    .reset_index(name='total_generation_gwh_100km')
+)
+
+# merge total generation into the city GeoDataFrame
+us_cities_gdf = us_cities_gdf.merge(
+    generation_by_city,
+    on='city_fips',
+    how='left'
+)
+
+```
+
+- For each `city_fips`, sum up `generation_gwh_2019` among nearby power plants
+- Then use a regular `pandas` merge to merge the summed variable back in to `us_cities_gdf` 
+
+## Inspecting `us_cities_gdf` now
+```{.python}
+print(us_cities_gdf.head())
+```
+
+```{python}
+print(us_cities_gdf.head())
+```
+
+## 3. Plot total generation
+```{.python  code-line-numbers="|5-8"}
+fig, ax = plt.subplots(figsize=(10, 12))
+
+us_states_gdf.boundary.plot(ax=ax, color='lightgray', linewidth=0.5)
+
+us_cities_gdf.plot(
+    ax=ax, color='steelblue', edgecolor= 'black', alpha=0.5, 
+    markersize=us_cities_gdf['total_generation_gwh_100km'].fillna(0) / 10,
+    zorder = 2)
+
+us_cities_gdf.plot(ax=ax, markersize=5, color= 'black', zorder = 3)
+
+ax.set_title("Total Power Generation Within 100km of Large U.S. Cities (GWh, 2019)", fontsize=14)
+ax.text(0.5, -0.04,
+    "Marker size is proportional to total power generation within 100 km (GWh).", transform=ax.transAxes, ha='center', fontsize=10, color='dimgray')
+ax.set_axis_off()
+plt.show()
+```
+
+Encodes size of marker around each city to scale with `total_generation_gwh_100km`
+
+
+## 3. Plot total generation
+```{python}
+fig, ax = plt.subplots(figsize=(10, 12))
+
+us_states_gdf.boundary.plot(ax=ax, color='lightgray', linewidth=0.5)
+
+us_cities_gdf.plot(
+    ax=ax, color='steelblue', edgecolor= 'black', alpha=0.5, 
+    markersize=us_cities_gdf['total_generation_gwh_100km'].fillna(0) / 10,
+    zorder = 2)
+us_cities_gdf.plot(ax=ax, markersize=5, color= 'black', zorder = 3)
+ax.set_title("Total Power Generation Within 100km of Large U.S. Cities (GWh, 2019)", fontsize=14)
+ax.text(
+    0.5, -0.04,
+    "Marker size is proportional to total power generation within 100 km (GWh).",
+    transform=ax.transAxes,   # axis-relative coordinates
+    ha='center',
+    fontsize=10,
+    color='dimgray'
+)
+ax.set_axis_off()
+plt.show()
+
+```
+
+## Use case 4: spatial calculations -- summary
+- When combining plots, always check if your CRS's are the same -- it won't necessarily throw an error
+- If calculating distance, make sure you're using a CRS with the correct unit
+- Can use spatial methods to construct "tools" (like a `buffer`) to do calculations that don't show up in the final plot
+
+
+## Advanced spatial methods -- summary
+We've covered several use cases for advanced spatial methods:
+
+1. Joining to characterize spatial relationships
+2. Communicating spatial patterns
+3. Making production-quality maps
+4. Doing spatial calculations
+
+There are *many* more methods that we won't have time to cover. 
+
+## Overall Takeaways
+
+- Build step by step, and inspect the GeoDataFrame + plot at each step
+- Spatial methods can be computationally intensive
+    - Pre-process your data as much as possible
+- Like any other kind of visualization, maps can suffer from overplotting or poor encoding
+    - Still have to be thoughtful about your audience, headline message, and submessages
+    - Make many plots!
