@@ -31,5 +31,5 @@ format:
 
 
 ## Final project tips
-- We added a list of tips for the final project in the student repo [(here)](https://github.com/uchicago-harris-dap/student30538-w26/blob/main/final_project/final_project_tips.pdf)
+- We added a list of tips for the final project in the student repo [(here)](https://github.com/uchicago-harris-dap/student30538-w26/blob/main/final_project/final_project_instructions.pdf)
 - Provides more detail on what we will be looking for when evaluating your project and presentation
