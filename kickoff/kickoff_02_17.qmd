@@ -1,0 +1,27 @@
+---
+title: "Kickoff - lecture 13"
+author: "Peter Ganong and Maggie Shi"
+date-format: February 17, 2026
+format: 
+    revealjs:
+        slide-number: true
+        show-slide-number: all
+        self-contained: true
+---
+
+## Reminder: assessment protocol
+* Lockdown browser on today's assessment and next week's final
+* Protocol largely similar to before, except you access Gradescope 
+* Practice assessment [here](https://canvas.uchicago.edu/courses/68386/quizzes/158912)
+
+## Reminder: PS6
+* Part 2 of CTA case study 
+* If you get stuck: TAs have hints at OH
+* Even if you can't do equity/efficiency calculations, we've provided data to do the dashboard
+
+## Next week's schedule
+* Tuesday: no quiz at lab and no minilesson. Instead, open office hours to talk about your project. Strongly encouraged to show what you have so far. Sign up [here](https://docs.google.com/spreadsheets/d/1LdJo1yJfd1Kq01neww5iWvlgrG_r8CDpaBISagN0C-U/edit?gid=1292836342#gid=1292836342). Will adjust slot length if it fills up
+* Thursday: 11AM-12PM **CTA guest lecturer**
+* Thursday: **6:30-8PM -- final exam**
+    * PS6 lab assessments
+    * And topics from 3 previous weeks' lab assessments
